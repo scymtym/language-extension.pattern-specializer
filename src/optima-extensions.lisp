@@ -111,3 +111,9 @@
            t)
           (t
            nil))))))
+
+;; `structure-pattern'
+
+(defmethod pattern-more-specific-p ((pattern1 optima::structure-pattern)
+                                    (pattern2 optima::structure-pattern))
+  (error "not implemented"))

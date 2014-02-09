@@ -62,7 +62,7 @@
 (defmethod method-pattern-specializers ((gf pattern-generic-function)
                                         (method pattern-method))
   (remove-if-not (of-type 'pattern-specializer)
-                 (mapcar (curry #'parse-specializer-using-class gf)
+                 (mapcar (curry #'parse-specializer-using-class gf) ; TODO necessary?
                          (method-specializers method))))
 
 (defmethod make-method-lambda-using-specializers
@@ -180,7 +180,7 @@
      (specializer-name cons)
      (environment t))
   (when (typep specializer-name '(cons (eql pattern)))
-    `(parse-specializer-using-class
+    `(sb-pcl:parse-specializer-using-class ; TODO packages
       (sb-pcl:class-prototype (find-class ',(type-of proto-generic-function)))
       ',specializer-name)))
 

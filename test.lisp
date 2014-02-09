@@ -6,33 +6,33 @@
 
 (cl:in-package #:cl-user)
 
-(defgeneric test-match (thing &key &allow-other-keys)
+(defgeneric test-match/1 (thing &key &allow-other-keys)
   (:generic-function-class pattern-specializer:pattern-generic-function))
 
-(defmethod test-match ((thing (pattern-specializer:pattern (cons n "bla"))))
+(defmethod test-match/1 ((thing (pattern-specializer:pattern (cons n "bla"))))
   (list (list :cons-n-string-bla n)
         (when (next-method-p)
           (call-next-method))))
 
-(defmethod test-match ((thing (pattern-specializer:pattern (cons n "bli"))))
+(defmethod test-match/1 ((thing (pattern-specializer:pattern (cons n "bli"))))
   (list (list :cons-n-string-bli n)
         (when (next-method-p)
           (call-next-method))))
 
-(defmethod test-match :around ((thing (pattern-specializer:pattern (cons 1 "bli"))))
+(defmethod test-match/1 :around ((thing (pattern-specializer:pattern (cons 1 "bli"))))
   (list :around-cons-1-string-bli
         (when (next-method-p)
           (call-next-method))))
 
-(defmethod test-match ((thing (pattern-specializer:pattern (cons 1 "bli"))))
+(defmethod test-match/1 ((thing (pattern-specializer:pattern (cons 1 "bli"))))
   :cons-1-string-bli)
 
-(defmethod test-match ((thing (pattern-specializer:pattern (cons n m))))
+(defmethod test-match/1 ((thing (pattern-specializer:pattern (cons n m))))
   (list :cons-n-m n m))
 
-(test-match (cons 5 "bla"))
-(test-match (cons 1 "bli"))
-(test-match (cons 1 "blu"))
+(test-match/1 (cons 5 "bla"))
+(test-match/1 (cons 1 "bli"))
+(test-match/1 (cons 1 "blu"))
 
 (defgeneric test-match/2 (thing1 thing2 &key foo)
   (:generic-function-class pattern-specializer:pattern-generic-function))
