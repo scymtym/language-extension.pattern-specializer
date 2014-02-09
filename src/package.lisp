@@ -31,7 +31,7 @@
   (:import-from #:sb-pcl
    #:parse-specializer-using-class
    #:unparse-specializer-using-class
-   #:make-method-specializers-form
+   #:make-specializer-form-using-class
 
    #:make-method-lambda-using-specializers)
 

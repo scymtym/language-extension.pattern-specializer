@@ -206,12 +206,15 @@
     ((gf pattern-generic-function) (specializer pattern-specializer))
   `(pattern ,(specializer-pattern specializer)))
 
-(defmethod make-method-specializers-form
-    ((gf pattern-generic-function) method snames env)
-  (flet ((make-parse-form (name)
-           `(parse-specializer-using-class
-             (fdefinition ',(generic-function-name gf)) ',name)))
-    `(list ,@(mapcar #'make-parse-form snames))))
+(defmethod make-specializer-form-using-class or
+    ((proto-generic-function pattern-generic-function)
+     (proto-method pattern-method)
+     (specializer-name cons)
+     (environment t))
+  (when (typep specializer-name '(cons (eql pattern)))
+    `(parse-specializer-using-class
+      (sb-pcl:class-prototype (find-class ',(type-of proto-generic-function)))
+      ',specializer-name)))
 
 (defun make-matching-lambda-form (gf methods)
   (labels ((specializer-pattern1 (specializer)
