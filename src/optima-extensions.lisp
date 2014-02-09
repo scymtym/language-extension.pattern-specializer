@@ -61,6 +61,20 @@
           (pattern-more-specific-p pattern1 subpattern))
         (optima::complex-pattern-subpatterns pattern2)))
 
+;; `or-pattern'
+
+(defmethod pattern-more-specific-p ((pattern1 optima::or-pattern)
+                                    (pattern2 optima::pattern))
+  (every (lambda (subpattern)
+           (pattern-more-specific-p subpattern pattern2))
+         (optima::complex-pattern-subpatterns pattern1)))
+
+(defmethod pattern-more-specific-p ((pattern1 optima::pattern)
+                                    (pattern2 optima::or-pattern))
+  (every (lambda (subpattern)
+           (pattern-more-specific-p pattern1 subpattern))
+         (optima::complex-pattern-subpatterns pattern2)))
+
 ;; `cons-pattern'
 
 ; TODO do this in a generic way via optima::complex-pattern-subpatterns
