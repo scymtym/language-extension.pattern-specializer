@@ -87,3 +87,27 @@
     (or (pattern-more-specific-p car1 car2)
         (and (not (pattern-more-specific-p car2 car1))
              (pattern-more-specific-p cdr1 cdr2)))))
+
+;; `class-pattern'
+
+(defmethod pattern-more-specific-p ((pattern1 optima::class-pattern)
+                                    (pattern2 optima::class-pattern))
+  (let ((class1 (optima::class-pattern-class-name pattern1))
+        (class2 (optima::class-pattern-class-name pattern2)))
+    (multiple-value-bind (result1 certain1-p) (subtypep class1 class2)
+      (multiple-value-bind (result2 certain2-p) (subtypep class2 class1)
+        (assert (and certain1-p certain2-p))
+        (cond
+          ((and result1 result2)
+           ;; TODO this will be call-next-method => method for complex-pattern-sub-patterns
+           (loop :for subpattern1 :in (optima::complex-pattern-subpatterns pattern1) ; TODO permutations
+                 :for subpattern2 :in (optima::complex-pattern-subpatterns pattern2)
+                 :do (cond
+                       ((pattern-more-specific-p subpattern1 subpattern2)
+                        (return t))
+                       ((pattern-more-specific-p subpattern2 subpattern1)
+                        (return nil)))))
+          (result1
+           t)
+          (t
+           nil))))))
