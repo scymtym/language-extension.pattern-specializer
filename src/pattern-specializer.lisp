@@ -105,7 +105,7 @@
         (multiple-value-call #'values
           (call-next-method
            gf method qualifiers specializers new-lambda-expression environment)
-          new-lambda-list)))))
+          lambda-list)))))
 
 (defgeneric method-more-specific-p (gf method1 method2))
 
