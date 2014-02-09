@@ -83,33 +83,39 @@
   ;;
   ;; TODO obviously, this has to parse the original lambda-list
   ;; properly in the future.
-  (destructuring-bind (lambda lambda-list &body body) lambda-expression
-    (declare (ignore lambda))
-    (flet ((make-keyword-parameter (variable)
-             (list `((,(make-keyword variable) ,variable)))))
-      (let* ((variables (mappend #'specializer-pattern-variables ; TODO this stuff is repeated in make-method-matching-form
-                                 (remove-if-not (of-type 'pattern-specializer)
-                                                (mapcar (curry #'parse-specializer-using-class gf)
-                                                        specializers))))
-             (new-lambda-list (append
-                               lambda-list
-                               (list* '&key (mapcan #'make-keyword-parameter variables))
-                               (list '&allow-other-keys)))
-             (new-lambda-expression `(lambda ,new-lambda-list ,@body)))
+  (destructuring-bind (operator lambda-list &body body) lambda-expression
+    (declare (ignore operator))
+    (multiple-value-bind (required optional rest keyword allow-other-keys-p)
+        (parse-ordinary-lambda-list lambda-list :normalize nil)
+      (flet ((make-keyword-parameter (variable)
+               (list `((,(make-keyword variable) ,variable)))))
+        (let* ((variables (mappend #'specializer-pattern-variables ; TODO this stuff is repeated in make-method-matching-form
+                                   (remove-if-not (of-type 'pattern-specializer)
+                                                  (mapcar (curry #'parse-specializer-using-class gf)
+                                                          specializers))))
+               (new-lambda-list `(,@required
+                                  ,@(when optional
+                                      `(&optional ,@optional))
+                                  ,@(when rest
+                                      `(&rest ,rest))
+                                  ,@(when (or keyword variables)
+                                      `(&key ,@keyword
+                                             ,@(mapcan #'make-keyword-parameter variables)))
+                                  ,@(when allow-other-keys-p
+                                      '(&allow-other-keys))))
+               (new-lambda-expression `(lambda ,new-lambda-list ,@body)))
 
-        (format t "make-method-lambda-using-specializers~%  ~A~%  ~A~%  ~A~%  ~A~%=>"
-               gf method specializers lambda-expression)
-        (print new-lambda-list)
-        (print new-lambda-expression)
+          (format t "make-method-lambda-using-specializers~%  ~A~%  ~A~%  ~A~%  ~A~%=>"
+                  gf method specializers lambda-expression)
+          (print new-lambda-list)
+          (print new-lambda-expression)
 
-        (multiple-value-call #'values
           (call-next-method
-           gf method qualifiers specializers new-lambda-expression environment)
-          lambda-list)))))
+           gf method qualifiers specializers new-lambda-expression environment))))))
 
 (defgeneric method-more-specific-p (gf method1 method2))
 
-(defmethod method-more-specific-p ((gf pattern-generic-function)
+(defmethod method-more-specific-p ((gf      pattern-generic-function)
                                    (method1 pattern-method)
                                    (method2 pattern-method))
   (let* ((specializers1 (method-pattern-specializers gf method1))
@@ -200,8 +206,9 @@
                 `(,(case arity
                      (1 (specializer-pattern1 (first specializers)))
                      (t (mapcar #'specializer-pattern1 specializers)))
-                  (list '(,most-specific-method ,@other-methods)
-                        (list ,@(method-variables most-specific-method))))))
+                  (values
+                   '(,most-specific-method ,@other-methods)
+                   (list ,@(method-variables most-specific-method))))))
             (cluster-clauses (cluster)
               (loop :for ((head-first . head-rest) . rest) :on cluster
                     :collect (cluster-clause
@@ -213,13 +220,11 @@
         ,(case arity
            (1 '(format t "dispatch: ~A~%" arg))
            (t '(format t "dispatch: ~A~%" args)))
-        (list
+        (,@(case arity
+             (1 `(optima:match arg))
+             (t `(optima:multiple-value-match (values-list args))))
          ,@(loop :for cluster :in clusters
-                 :collect (case arity
-                            (1 `(optima:match arg
-                                  ,@(cluster-clauses cluster)))
-                            (t `(optima:multiple-value-match (values-list args)
-                                  ,@(cluster-clauses cluster))))))))))
+                 :appending (cluster-clauses cluster)))))))
 
 (defun make-method-interpreting-function (gf)
   (format t "~&method-interpreting-function: ~A~%" gf)
@@ -246,6 +251,7 @@
                                                                 (apply f a))))))
                                (call-method (method next-methods)
                                  ;; TODO we could do method-specific parsing here
+                                 ;; TODO can we extract the method-function like ,(method-function method)?
                                  `(progn
                                     (format t "~& trying to call~%  ~A~%  ~A~%  ~A~%"
                                             ,method args (list ,@next-methods))
@@ -255,13 +261,14 @@
                (compile nil (make-effective-method-form spec))))
       (let* ((function2     (make-method-interpreting-function gf))
              (function4     (lambda (&rest args)
-               (let* ((methods '())
-                      (variables '())
-                      (function3 (progn
-                                   (loop :for (methods1 variables1) :in (apply function2 args)
-                                         :do (appendf methods methods1)
-                                             (appendf variables variables1))
+               (multiple-value-bind (methods variables) (apply function2 args)
 
+                 (loop :for spec :in (method-pattern-specializers gf (first methods))
+                       :for gen :in (mapcar #'class-of args)
+                       :do (print (list spec gen (multiple-value-list (specializer-accepts-generalizer-p
+                                                                       gf spec gen)))))
+
+                (let ((function3 (progn
                                    (format t "~&  methods~%  ~A~&  variables~&  ~A~%" methods variables)
                                    (multiple-value-bind (effective-method options)
                                        (compute-effective-method
@@ -271,12 +278,12 @@
                                      (format t "~&  options:~&  ")
                                      (print options)
                                      (make-effective-method-function effective-method)))))
-                 (apply function3 (append args (loop :for value :in variables
-                                                     :for name :in (when methods
-                                                                     (mappend
-                                                                      #'specializer-pattern-variables
-                                                                      (method-pattern-specializers gf (first methods))))
-                                                     :collect (make-keyword name)
-                                                     :collect value)))))))
-        (set-funcallable-instance-function gf function4)
+                  (apply function3 (append args (loop :for value :in variables
+                                                      :for name :in (when methods
+                                                                      (mappend
+                                                                       #'specializer-pattern-variables
+                                                                       (method-pattern-specializers gf (first methods))))
+                                                      :collect (make-keyword name)
+                                                      :collect value))))))))
+        (set-funcallable-instance-function gf function4) ; TODO seems to be wrong
         (apply function4 args)))))

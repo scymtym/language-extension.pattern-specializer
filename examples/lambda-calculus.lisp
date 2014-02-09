@@ -35,7 +35,7 @@
 
 ;;; Parse
 
-(defgeneric parse (from &key &allow-other-keys)
+(defgeneric parse (from)
   (:generic-function-class pattern-generic-function))
 
 (defmethod parse ((form (pattern (optima:guard value (integerp value))))) ; TODO just (form integer)
@@ -73,7 +73,7 @@
 
 ;;; Evaluation
 
-(defgeneric eval1 (term &key &allow-other-keys)
+(defgeneric eval1 (term)
   (:generic-function-class pattern-generic-function))
 
 (defmethod eval1 ((term (pattern (value)))) ; TODO does not need pattern

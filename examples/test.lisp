@@ -38,7 +38,8 @@
   (:generic-function-class pattern-specializer:pattern-generic-function))
 
 (defmethod test-match/2 ((thing1 (pattern-specializer:pattern (cons 1 "bla")))
-                         (thing2 (pattern-specializer:pattern (cons 2 "bla"))))
+                         (thing2 (pattern-specializer:pattern (cons 2 "bla")))
+                         &key foo)
   :cons-1-string-bla-cons-2-string-bla)
 
 (test-match/2 (cons 1 "bla") (cons 2 "bla"))

@@ -102,6 +102,7 @@ return three values:
 ;;; class and eql specializers and eventually reach an error signaling
 ;;; method for invalid specializers.
 
+;; TODO same approach for parse-specializer-using-class?
 (defgeneric make-specializer-form-using-class (proto-generic-function proto-method specializer-name environment)
   (:method-combination or)
   #+sb-doc
