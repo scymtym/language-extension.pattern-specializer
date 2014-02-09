@@ -226,7 +226,7 @@
                       (method-pattern-specializers gf method)))
            (cluster-clause (most-specific-method other-methods)
              (let ((specializers (method-specializers most-specific-method)))
-               `((list ,@(mapcar #'specializer-pattern1 specializers))
+               `(,(mapcar #'specializer-pattern1 specializers)
                  (list '(,most-specific-method ,@other-methods)
                        (list ,@(method-variables most-specific-method))))))
            (cluster-clauses (cluster)
@@ -239,7 +239,7 @@
          (format t "dispatch: ~A~%" args)
          (list
           ,@(loop :for cluster :in clusters
-                  :collect `(optima:match args
+                  :collect `(optima:multiple-value-match (values-list args)
                               ,@(cluster-clauses cluster))))))))
 
 (defun make-method-interpreting-function (gf)
