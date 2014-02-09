@@ -6,38 +6,6 @@
 
 (cl:in-package #:pattern-specializer)
 
-;;;
-
-(defgeneric pattern-more-specific-p (pattern1 pattern2))
-
-(defmethod pattern-more-specific-p :around ((pattern1 optima::pattern)
-                                            (pattern2 optima::pattern))
-  (unless (eq pattern1 pattern2)
-    (call-next-method)))
-
-(defmethod pattern-more-specific-p ((pattern1 optima::pattern)
-                                    (pattern2 optima::pattern))
-  nil)
-
-(defmethod pattern-more-specific-p ((pattern1 optima::pattern)
-                                    (pattern2 optima::variable-pattern))
-  t)
-
-(defmethod pattern-more-specific-p ((pattern1 optima::variable-pattern)
-                                    (pattern2 optima::variable-pattern))
-  nil)
-
-; TODO do this in a generic way via optima::complex-pattern-subpatterns
-(defmethod pattern-more-specific-p ((pattern1 optima::cons-pattern)
-                                    (pattern2 optima::cons-pattern))
-  (let ((car1 (optima::cons-pattern-car-pattern pattern1))
-        (cdr1 (optima::cons-pattern-cdr-pattern pattern1))
-        (car2 (optima::cons-pattern-car-pattern pattern2))
-        (cdr2 (optima::cons-pattern-cdr-pattern pattern2)))
-    (or (pattern-more-specific-p car1 car2)
-        (and (not (pattern-more-specific-p car2 car1))
-             (pattern-more-specific-p cdr1 cdr2)))))
-
 ;;; `pattern-specializer' class
 
 (defclass pattern-specializer (specializer)

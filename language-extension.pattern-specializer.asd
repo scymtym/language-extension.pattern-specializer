@@ -24,4 +24,5 @@
                  :components ((:file       "pcl-patch"
                                :if-feature :sbcl)
                               (:file       "package")
+                              (:file       "optima-extensions")
                               (:file       "pattern-specializer")))))
