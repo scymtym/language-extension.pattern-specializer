@@ -185,30 +185,41 @@
       ',specializer-name)))
 
 (defun make-matching-lambda-form (gf methods)
-  (labels ((specializer-pattern1 (specializer)
-             (typecase specializer
-               (pattern-specializer (specializer-pattern specializer))
-               (t                   '*)))
-           (method-variables (method)
-             (mappend #'specializer-pattern-variables
-                      (method-pattern-specializers gf method)))
-           (cluster-clause (most-specific-method other-methods)
-             (let ((specializers (method-specializers most-specific-method)))
-               `(,(mapcar #'specializer-pattern1 specializers)
-                 (list '(,most-specific-method ,@other-methods)
-                       (list ,@(method-variables most-specific-method))))))
-           (cluster-clauses (cluster)
-             (loop :for ((head-first . head-rest) . rest) :on cluster
-                   :collect (cluster-clause
-                             head-first (reduce #'append rest
-                                                :initial-value head-rest)))))
-    (let ((clusters (cluster-methods gf methods)))
-      `(lambda (&rest args)
-         (format t "dispatch: ~A~%" args)
-         (list
-          ,@(loop :for cluster :in clusters
-                  :collect `(optima:multiple-value-match (values-list args)
-                              ,@(cluster-clauses cluster))))))))
+  (let ((arity (when-let ((first-method (first methods)))
+                 (length (method-specializers first-method))))
+        (clusters (cluster-methods gf methods)))
+   (labels ((specializer-pattern1 (specializer)
+              (typecase specializer
+                (pattern-specializer (specializer-pattern specializer))
+                (t                   '*)))
+            (method-variables (method)
+              (mappend #'specializer-pattern-variables
+                       (method-pattern-specializers gf method)))
+            (cluster-clause (most-specific-method other-methods)
+              (let ((specializers (method-specializers most-specific-method)))
+                `(,(case arity
+                     (1 (specializer-pattern1 (first specializers)))
+                     (t (mapcar #'specializer-pattern1 specializers)))
+                  (list '(,most-specific-method ,@other-methods)
+                        (list ,@(method-variables most-specific-method))))))
+            (cluster-clauses (cluster)
+              (loop :for ((head-first . head-rest) . rest) :on cluster
+                    :collect (cluster-clause
+                              head-first (reduce #'append rest
+                                                 :initial-value head-rest)))))
+     `(lambda ,(case arity
+                 (1 '(arg))
+                 (t '(&rest args)))
+        ,(case arity
+           (1 '(format t "dispatch: ~A~%" arg))
+           (t '(format t "dispatch: ~A~%" args)))
+        (list
+         ,@(loop :for cluster :in clusters
+                 :collect (case arity
+                            (1 `(optima:match arg
+                                  ,@(cluster-clauses cluster)))
+                            (t `(optima:multiple-value-match (values-list args)
+                                  ,@(cluster-clauses cluster))))))))))
 
 (defun make-method-interpreting-function (gf)
   (format t "~&method-interpreting-function: ~A~%" gf)
