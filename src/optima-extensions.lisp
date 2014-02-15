@@ -6,6 +6,8 @@
 
 (cl:in-package #:pattern-specializer)
 
+;;; Protocol
+
 (defgeneric pattern-more-specific-p (pattern1 pattern2)
   (:documentation
    "Return true if PATTERN1 is strictly more specific than
@@ -27,6 +29,12 @@
         pattern in question.
 
       * `or-pattern's are similar."))
+
+(defun subpatterns-unrestricted-p (pattern)
+  (every (of-type 'optima::variable-pattern)
+         (optima::complex-pattern-subpatterns pattern)))
+
+;;; Implementation
 
 (defmethod pattern-more-specific-p :around ((pattern1 optima::pattern)
                                             (pattern2 optima::pattern))

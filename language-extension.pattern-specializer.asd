@@ -17,6 +17,8 @@
   :description "Use optima patterns as specializers in CLOS methods - SBCL ONLY"
   :depends-on  (;; (:feature :sbcl) this works differently than one might think; it's more like (:if-features :sbcl :foo :bar)
 
+                :specializable
+
                 :alexandria
                 :optima)
   :components  ((:module     "src"
@@ -25,4 +27,5 @@
                                :if-feature :sbcl)
                               (:file       "package")
                               (:file       "optima-extensions")
-                              (:file       "pattern-specializer")))))
+                              (:file       "pattern-specializer")
+                              (:file       "specializable")))))
